@@ -1,0 +1,399 @@
+---
+title: "5_SOK1016_M1_V23"
+author: "5"
+format: pdf
+editor: visual
+echo: FALSE
+warning: FALSE
+---
+
+```{r, output = FALSE, warning = FALSE}
+# Sletter minnet og laster inn pakker.
+rm(list=ls())
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(rjstat))
+suppressPackageStartupMessages(library(gdata))
+suppressPackageStartupMessages(library(httr))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(janitor))
+```
+
+```{r, output = FALSE}
+# Laster inn dataen på prod. og inntekt, med bruk av JSON-spørring.
+url_01 <- "https://data.ssb.no/api/v0/no/table/09171/"
+
+query_01 <- '{
+  "query": [
+    {
+      "code": "NACE",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "nr23_6",
+          "nr2X06_09",
+          "nr23ind",
+          "pub2X41_43",
+          "pub2X45_47",
+          "pub2X58_63",
+          "pub2X64_66",
+          "pub2X84",
+          "pub2X85",
+          "pub2X86_88"
+        ]
+      }
+    },
+    {
+      "code": "ContentsCode",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "Prob",
+          "BNPB",
+          "Prob2",
+          "BNPB2"
+        ]
+      }
+    },
+    {
+      "code": "Tid",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "2011K1",
+          "2011K2",
+          "2011K3",
+          "2011K4",
+          "2012K1",
+          "2012K2",
+          "2012K3",
+          "2012K4",
+          "2013K1",
+          "2013K2",
+          "2013K3",
+          "2013K4",
+          "2014K1",
+          "2014K2",
+          "2014K3",
+          "2014K4",
+          "2015K1",
+          "2015K2",
+          "2015K3",
+          "2015K4",
+          "2016K1",
+          "2016K2",
+          "2016K3",
+          "2016K4",
+          "2017K1",
+          "2017K2",
+          "2017K3",
+          "2017K4",
+          "2018K1",
+          "2018K2",
+          "2018K3",
+          "2018K4",
+          "2019K1",
+          "2019K2",
+          "2019K3",
+          "2019K4",
+          "2020K1",
+          "2020K2",
+          "2020K3",
+          "2020K4",
+          "2021K1",
+          "2021K2",
+          "2021K3",
+          "2021K4"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json-stat2"
+  }
+}'
+
+hent_indeks.tmp_01 <- url_01 %>%
+  POST(body = query_01, encode = "json")
+
+df_09171 <-  hent_indeks.tmp_01 %>%
+  content("text") %>%
+  fromJSONstat() %>%
+  as_tibble()
+```
+
+```{r}
+# Laster inn dataen på sysselsetting, med bruk av JSON-spørring.
+url_02 <- "https://data.ssb.no/api/v0/no/table/09174/"
+
+query_02 <- '{
+  "query": [
+    {
+      "code": "NACE",
+      "selection": {
+        "filter": "vs:NRNaeringPubAgg",
+        "values": [
+          "nr23_6",
+          "nr2X06_09",
+          "nr23ind",
+          "pub2X41_43",
+          "pub2X45_47",
+          "pub2X58_63",
+          "pub2X64_66",
+          "pub2X84",
+          "pub2X85",
+          "pub2X86_88"
+        ]
+      }
+    },
+    {
+      "code": "ContentsCode",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "SysselsatteNormL"
+        ]
+      }
+    },
+    {
+      "code": "Tid",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json-stat2"
+  }
+}'
+
+hent_indeks.tmp_02 <- url_02 %>%
+  POST(body = query_02, encode = "json")
+
+df_09174 <-  hent_indeks.tmp_02 %>%
+  content("text") %>%
+  fromJSONstat() %>%
+  as_tibble()
+```
+
+```{r, warning = FALSE}
+# Transformerer dataen til årlige observasjoner.
+df_09171 <- df_09171 %>%
+  separate(kvartal, into = c("year"), sep = "K") %>%
+  mutate(year = as.numeric(year)) %>%
+  group_by(year, statistikkvariabel, næring) %>%
+  summarise(value = mean(value))
+
+# Skifter navn og transformerer "year" fra symboler til tall.
+df_09174 <- df_09174 %>%
+  rename(year = år) %>%
+  mutate(year = as.numeric(year))
+```
+
+## Oppgave 1
+
+**Lag to til fire figurer som sammenligninger sysselsetting, produksjon, bruttoprodukt, og bruttoprodukt per sysselsatt på tvers av næringer i 2021.**
+
+```{r}
+# Velger dataen jeg trenger til oppgave 1.
+df_01 <- df_09171 %>%
+  filter(year == 2021) %>%
+  filter(statistikkvariabel == 
+           "Bruttoprodukt i basisverdi. Løpende priser (mill. kr)" |
+           statistikkvariabel == 
+           "Produksjon i basisverdi. Løpende priser (mill. kr)") %>%
+  filter(næring != "Totalt for næringer")
+
+df_02 <- df_09174 %>%
+  filter(year == 2021)
+
+# Ganger med 1000 for å få det faktiske tallet på antall årsverk.
+df_02 <- df_02 %>%
+  mutate(value = value*1000) %>%
+  filter(næring != "Totalt for næringer")
+
+# Legger alle dataen i samme dataframe.
+df_03 <- rbind(df_01, df_02)
+```
+
+```{r}
+# Skiller ut bruttoprodukt og antall årsverk i egene dataframes.
+df_04 <- df_03 %>%
+  filter(statistikkvariabel == 
+           "Bruttoprodukt i basisverdi. Løpende priser (mill. kr)")
+
+df_05 <- df_03 %>%
+  filter(statistikkvariabel == 
+           "Årsverk, heltidsekvivalenter, for lønnstakere (1 000 årsverk)")
+```
+
+```{r}
+# Legger begge datasettene i samme rekkefølge.
+df_04 <- df_04[order(df_04$næring),]
+df_05 <- df_05[order(df_05$næring),]
+```
+
+```{r}
+# Legger næringene i en egen liste.
+næring = df_05$næring
+
+# Lager en ny dataframe som inneholder bruttoprodukt per sysselsatt.
+# Bruttoprodukt / sysselsatte.
+df_06 <- c(df_04$value / df_05$value)
+df_06 <- data.frame(df_06)
+df_07 <- cbind(df_06, næring)
+
+# Skifter navn på det nye datasettet.
+df_07 <- df_07 %>%
+  rename(value = df_06)
+```
+
+```{r}
+# Lager figur 1.
+df_01 %>%
+  ggplot(aes(x = næring, y = value, fill = statistikkvariabel)) +
+  geom_col(position = "dodge") +
+  labs(title ="Fig.1: Bruttoprodukt og produksjon", 
+          subtitle = "Bruttoprodukt og produksjon fordelt på næringer, 
+målt i milioner kr i 2021 (løpende priser).",
+          caption = "Kilde: SSB Tabell 09171",
+       fill = "Statistikkvariabel") +
+  ylab("") +
+  xlab("") +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 5)) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_fill_discrete(labels = c("Bruttoprodukt", "Produksjon"))
+```
+
+På figur 1 kan vi se bruttoprodukt og produksjon fordelt på utvalgte næringer målt i løpende priser i 2021. Bruttoproduksjon er salgsverdien av produksjonen minus produktinnsatsen som ble brukt i produksjonen. Produksjon viser hvor mye som produseres av varer og tjenester. Vi kan se at *olje og gass* sektoren er den største målt i verdiskapning (SSB, I.D.).
+
+```{r}
+# Lager figur 2.
+df_02 %>%
+  ggplot(aes(x = næring, y = value, fill = statistikkvariabel)) +
+  geom_col(position = "dodge", show.legend = FALSE) +
+  labs(title ="Fig.2: Sysselsetting", 
+          subtitle = "Antall årsverk fordelt på næringer i 2021.",
+          caption = "Kilde: SSB Tabell 09174",
+       fill = "Statistikkvariabel") +
+  ylab("") +
+  xlab("") +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 5)) +
+  scale_y_continuous(labels = scales::comma)
+```
+
+På figur 2 kan vi se antall årsverk fordelt på næringer i 2021. Vi kan se at *Helse- og sosialtjenester* er den desidert største sektoren, mens *olje og gass* er blant de laveste sektorene selv om de i figur 1 var størst på verdiskapning.
+
+```{r}
+# Lager figur 3.
+df_07 %>%
+  ggplot(aes(x = næring, y = value, fill = "red")) +
+  geom_col(position = "dodge", show.legend = FALSE) +
+  labs(title ="Fig.3: Bruttoprodukt per sysselsatte.", 
+          subtitle = "Bruttoprodukt i løpende priser (mill. kr) per sysselsatte (årsverk) 
+fordelt på næringer i 2021.",
+          caption = "Kilde: SSB Tabell 09174 og SSB Tabell 09171",
+       fill = "Statistikkvariabel") +
+  ylab("") +
+  xlab("") +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 5)) +
+  scale_y_continuous(labels = scales::comma)
+```
+
+På figur 3 kan vi se bruttoprodukt per sysselsatte i 2021. Vi kan se at *olje og gass* sektoren er størst og dette kan tyde på at dette også er sektoren med høyest økonomisk produktivitet. Mens *helse- og sosialtjenester* er blant de laveste, vi skal i neste oppgave se litt nærmere på en mulig grunn til at det er slik.
+
+## Oppgave 2
+
+**Er bruttoprodukt per sysselsatt et godt mål på produktivitet i offentlig sektor?**
+
+Bruttoprodukt per sysselsatt er en økonomisk indikator som måler produksjonen per sysselsatt. Dette kan gi en god indikasjon på produktivitet per sysselsatt i privat sektor, men er ikke nødvendigvis et godt mål på produktivitet i det offentlige.
+
+Offentlig sektor er preget av tjenester som ikke nødvendigvis kan måles på samme måte som produksjon i privat sektor. F.eks. kan helse- og utdanningstjenester ikke måles på samme måte som produksjonen av en vare på en fabrikk. Målet til offentlig sektor er ikke nødvendigvis å være så produktive som mulig, men for eks. å gi likeverdig tilgang til tjenester for alle innbyggerne, uavhengig av deres evne til å betale for dem. F.eks. i helse-, politi- og branntjenester er andre indikatorer enn bruttoprodukt bedre indikatorer på måloppnåelse som f.eks. tilfredshet blant forbrukerne eller effektiv bruk av offentlige og tilgjengelige midler.
+
+Bruttoprodukt per sysselsatt kan også påvirkes av andre faktorer som ikke nødvendigvis er knyttet til produktivitet, f.eks. endring i arbeidsstyrke eller økonomiske konjunkturer.
+
+For å oppsummere kan vi si at bruttoprodukt per sysselsatt kan gi en indikasjon på produktivitet i offentlig sektor, men det gir ikke et fullstendig og pålitelig mål. Det er derfor viktig å se på flere indikatorer og kontekstuelle faktorer.
+
+Kilder: Callen (I.D.) og Dynleavy (2021).
+
+## Oppgave 3
+
+**Lag figurer som viser bruttoprodukt per næring i både faste og løpende priser mellom 2011 og 2021. Diskuter hvorvidt det er noen næringer hvor variasjon i produktprisene har særlig stor innvirkning på verdien av bruttoproduksjonen**
+
+```{r}
+# Velger dataen jeg trenger til oppgave 3.
+df_oppgave_03_01 <- df_09171 %>%
+  filter(statistikkvariabel == 
+           "Bruttoprodukt i basisverdi. Faste 2020-priser (mill. kr)") %>%
+  filter(næring != "Totalt for næringer")
+
+df_oppgave_03_02 <- df_09171 %>%
+  filter(statistikkvariabel == 
+           "Bruttoprodukt i basisverdi. Løpende priser (mill. kr)") %>%
+  filter(næring != "Totalt for næringer")
+```
+
+```{r}
+# Lager figuren for faste 2020-priser.
+df_oppgave_03_01 %>%
+  ggplot(aes(x = year, y = value, color = næring)) +
+  geom_line(aes(), alpha = 0.6, linewidth = 1) +
+  labs(x = "År", y = "Bruttoprodukt", color = NULL,
+       title = "Fig 5: Bruttoprodukt i faste 2020-priser (mill. kr)",
+       subtitle = "Bruttoprodukt fordelt på næringer 
+mellom 2011-2021 i faste 2020-priser (mill. kr).",
+       caption = "Kilde: SSB tabell 09171") +
+  scale_y_continuous(labels = scales::comma) +
+  theme_bw()
+```
+
+På figuren over kan vi se verdien av bruttoproduksjonen per næring mellom 2011 - 2021 i faste 2020-priser (mill. kr). At vi måler i faste priser vil si at vi tar høyde for prisstigningen, altså at vi ikke får like mye for samme kronebeløp (inflasjon). Vi kan se at alle sektorene har hatt en generell økning i reel vekst. Dette kan skyldes at næringene har blitt mer effektive med ny teknologi og høyere kompetanse.
+
+```{r}
+# Lager figuren for løpende priser.
+df_oppgave_03_02 %>%
+  ggplot(aes(x = year, y = value, color = næring)) +
+  geom_line(aes(), alpha = 0.6, linewidth = 1) +
+  labs(x = "År", y = "Bruttoprodukt", color = NULL,
+       title = "Fig 6: Bruttoprodukt i løpende priser (mill. kr)",
+       subtitle = "Bruttoprodukt fordelt på næringer 
+mellom 2011-2021 i løpende priser (mill. kr).",
+       caption = "Kilde: SSB tabell 09171") +
+  scale_y_continuous(labels = scales::comma) +
+  theme_bw()
+```
+
+På figuren over kan vi se verdien av bruttoproduksjonen per næring mellom 2011 - 2021 i løpende priser (mill. kr). Løpende priser vil si at verdien av bruttoproduksjonen er målt i den samme perioden som transaksjonen registrerte. Vi kan se at *utvinning av råolje og naturgass* skiller seg ut fra de andre sektorene. Vi ser at verdien av bruttoproduksjonen er vesentlig høyere med løpende priser enn faste 2020-priser. Vi kan også se at grafen er svært ustabil med store svingninger. Dette kan tyde på at *olje og gass* sektoren er særlig sensitiv for endring i etterspørsel. En mulig årsak til den voldsomme verdiøkningen i bruttoproduksjonen mot slutten av grafen kan være Russland og den pågående krigen i Ukraina, der vi har sett at både olje og gassprisene har vært svært ustabile og høye, spesielt for Europa (Hovland, 2022).
+
+## Oppgave 4
+
+**I norsk sammenheng skiller vi ofte mellom brutto nasjonal produkt (BNP) og brutto nasjonalprodukt på fasltandet (FN-BNP). Hvilke næringer er unntatt fra FN-BNP, og hvorfor gjøres dette?**
+
+På grunn av oljesektorens store betydning for norsk økonomi er det vanlig å beregne BNP Fastlands-Norge. Dette omfatter produksjonen fra alle næringer i Norge utenom utvinningen av olje og gass, rørtransport og utenriks sjøfart (SSB, 2021). Produksjonen i disse næringene kan variere mye uten at det har stor betydning for sysselsettingen og arbeidsledigheten (Finansdepartementet, I.D). Ved å trekke ut disse sektorene fra BNP kan man få et bedre bilde av den økonomiske aktiviteten og utviklingen i Norge.
+
+Når vi ser på grafene til *figur 6* kan vi se at olje og gass sektoren er nokså ustabil med løpende priser. Dette kan tyde på at olje og gass sektoren er særlig sensitiv for variasjon i produktpriser. Dette kan også være en grunn til å skille ut olje og gass sektoren fra BNP siden sektoren er såpass stor i Norsk økonomi, men også sensitiv for endring i etterspørsel. Visst vi ikke trekker ut olje og gass sektoren kan vi risikere å få ett misledende bilde av utviklingen til Norsk økonomi ved å se på BNP.
+
+## Kildeliste:
+
+-   SSB. (15.02.2023). *Tabell 09171: Produksjon og inntekt, etter næring. Ujustert og sesongjustert 1978k1 - 2022k4*. https://www.ssb.no/statbank/table/09171/
+-   SSB. (15.02.2023). *Tabell 09174: Lønn, sysselsetting og produktivitet, etter næring 1970 - 2022*. https://www.ssb.no/statbank/table/09174
+-   SSB. (05.11.2021). *Hva er egentlig BNP?*. https://www.ssb.no/nasjonalregnskap-og-konjunkturer/nasjonalregnskap/statistikk/nasjonalregnskap/artikler/hva-er-egentlig-bnp
+-   SSB. (I.D.). *Bruttoprodukt*. https://www.ssb.no/a/metadata/conceptvariable/vardok/1744/nb
+-   Finansdepartementet. (I.D.). *Bruttonasjonalprodukt (BNP)*. https://www.ungokonomi.no/bruttonasjonalprodukt-bnp/
+-   Callen. T. (I.D.). *Gross domestic product: an economy's all*. IMF.org. https://www.imf.org/en/Publications/fandd/issues/Series/Back-to-Basics/gross-domestic-product-GDP
+-   Dynleavy. P. (27-28.04.2021). *Regional and local productivity in the public sector.* OECD.org. https://www.oecd.org/regional/W3-S2-Patrick-Dunleavy.pdf
+-   Hovland. K. M. (22.08.2022) *Nytt hopp i gassprisene* E24.no. https://e24.no/olje-og-energi/i/wOMmOd/nytt-hopp-i-gassprisen
+-   Holden. S. (2016). *Makroøkonomi (1. utg.)*. Cappelen Damm Akademisk.
