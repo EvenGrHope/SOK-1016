@@ -1,0 +1,116 @@
+---
+title: "05_SOK1016_M2_V23"
+author: "05"
+format: pdf
+editor: visual
+---
+
+# Oppgave 1
+
+I oppgave 1 skal vi benytte følgende modell:
+
+$$(1)\ y - y_n = z - a(i - \pi_e) \\$$ $$(2)\ i = \phi(y-y_n) + \phi_n(\pi-\pi^*) \\$$ $$(3)\ \pi = \pi_e + \beta(y-y_n)$$
+
+Her er $y$, $i$ og $\pi$ henholdsvis produksjon, nominell rente og prisvekst. Det naturlige nivået på produksjonen er $y_n$, så differansen $y-y_n$ betegnes som produksjonsgapet. Sentralbanken sikter på en prisvekst $\pi^*$, og forventet prisvekst er $\pi_e$. Videre har de eksogene parameterne $a>0$,$\beta>0$,$\phi>0$ og $\phi_n > 0$.
+
+## Oppgave 1a
+
+Hvilke egenskaper ved økonomien bestemmer verdien på parameter $a$?
+
+Verdien av parameteren $a$ avhenger av hvordan produksjonen påvirkes av endringer i renten, vi kan skrive dette som $a = \Delta{y}/\Delta{i}$. Her er $\Delta{y}$ endringen i produksjonen som følge av endringen i den nominelle renten $\Delta{i}$. For å forstå hva som bestemmer verdien på $a$ kan vi se på en mer detaljert modell der produksjonen er bestemt av flere faktorer som f.eks. arbeidskraft, kapital og teknologi. Hvis endringer i den nominelle renten påvirker noen av disse faktorene, vil den påvirke produksjonen og da også verdien av parameteren $a$.
+
+## Oppgave 1b
+
+Anta at inflasjonsforventningene øker $\Delta{\pi_e} > 0$ og beregn fortegnet på endringen i rente, produksjonen og prisvekst, $\Delta{i}$, $\Delta{y}$ og $\Delta{\pi}$. Vis at produksjonen faller kun hvis $\phi_n > 1$. Hva er den økonomiske intuisjonen for denne restriksjonen?
+
+Hvis inflasjonsforventningen øker $\Delta{\pi_{e}}$ vil dette føre til at Norges Bank (sentralbanken) hever renten $\Delta{i} > 0$ for å dempe inflasjonen. Dette vil føre til at blandt annet produksjonen $\Delta{y}$ som vi så på i forrige oppgave og prisveksten $\Delta{\pi}$ endrer seg. Vi kan bruke modellen over til å beregne fortegnet på endringene.
+
+Fra likning (2): En økning i inflasjonsforventningene $\Delta{\pi_e}$ vil føre til en økning i den nominelle renten $i$, siden $\phi{\pi} > 0$.
+
+Fra likning (1): Vi ser at den eksogene variabelen $z$ har positivt fortegn og vi vet fra oppgaven at variabelen $a > 0$. En økning i variabelen $i$ vil dermed føre til en reduksjon i produksjonsgapet $y - y_n$.
+
+Fra likning (3): Når produksjonsgapet $y - y_n$ reduseres vil det føre til en økning i prisveksten $\pi$ siden $\beta$ er positiv.
+
+Endringene på fortegn når inflasjonsforventningene øker $\Delta\pi_e$ er dermed gitt ved:
+
+$\Delta{i} > 0$ (renten øker)
+
+$\Delta{y} < 0$ (produksjonen faller)
+
+$\Delta{\pi} > 0$ (prisveksten øker)
+
+Hvis $\phi{\pi} < 1$ er effekten av en økning i inflasjonsforventingene på den nominelle renten mindre enn effekten av en nedgang i produksjonen. Dette betyr altså at den nominelle renten vil synke. Dette kan stimulere til investering og forbruk, som igjen kan føre til økt produksjon. Men hvis $\phi{\pi} > 1$ så er effekten av en økning i inflasjonsforventingene på den nominelle renten større enn effekten av en nedgang i produksjonen. Dette betyr at den nominelle renten vil øke. Dette kan redusere investeringer og forbruk, som igjen kan føre til en nedgang i produksjonen.
+
+# Oppgave 2
+
+I oppgave 2 skal vi benytte følgende rekursive ligning for adaptive inflasjonsforventninger:
+
+$$ (3^*)\ \pi_t = \pi^e_t + \beta(y_t-y_n) $$
+
+Den sier at prisveksten i periode $t$ er gitt ved forventet prisvekst $\pi^e_t$ og øker i produksjonsgapet $y-y_n$ med en faktor $\beta > 0$. Anta nå at det er adaptive forventinger gitt ved:
+
+$$ (4)\ \pi^e_t=\pi_{t-1} $$
+
+For enkelhets skyld starter tiden ved $t = 0$. Vis at $\pi_r=\sum_{s = 0}^r\beta(y_s-y_n)$ for $0 < r < \infty$.
+
+For å vise at $\pi_r=\sum_{s = 0}^r\beta(y_s-y_n)$ for $0 < r < \infty$ kan vi bruke ligning $(3^*)$ og de adaptive forventingene fra ligning $(4)$ til å utlede $\pi_r$.
+
+Vi starter med å finne $\pi_0$ ved å sette $t = 0$ i ligning $(3^*)$:
+
+$\pi_0 = \pi_0^e+\beta(y_0-y_n)$
+
+Så setter vi inn de adaptive forventingene fra ligning $(4)$:
+
+$\pi_0 = \pi_{-1}+\beta(y_0-y_n)$
+
+Vi ser at det ikke er noen inflasjonsforventing ved $t = 0$ og vi får dermed:
+
+$\pi_0 = 0 + \beta(y_0-y_n)$
+
+Videre kan vi finne $\pi_1$ på samme måte:
+
+$\pi_1 = \pi_1^e + \beta(y_1-y_n)$
+
+$\pi_1 = \pi_0 + \beta(y_1-y_n)$
+
+$\pi_1 = \beta(y_0-y_n) + \beta(y_1-y_n)$
+
+Ved bruk av samme prosess kan vi finne $\pi_2, \pi_3, \pi_r$:
+
+$\pi_2 = \beta(y_0-y_n) + \beta(y_1-y_n) + \beta(y_2-y_n)$
+
+$\pi_3 = \beta(y_0-y_n) + \beta(y_1-y_n) + \beta(y_2-y_n) + \beta(y_3-y_n)$
+
+$\pi_r = \pi_r=\sum_{s = 0}^r\beta(y_s-y_n)$
+
+Hva ville skjed med prisveksten dersom ekspansiv økonomisk politikk forsøkte å holde et positivt produksjonsgap over tid, $y_t > y_n$ over mange perioder?
+
+Over tid vil de adaptive forventingene føre til en økning i inflasjonsforventingene over tid, som igjen vil kunne føre til høyere inflasjon over tid. Dette skyldes at prisveksten vil øke når produksjonsgapet er positivt. Dette vil føre til at økt prisvekst vil bli forventet i fremtiden. Som igjen kan føre til at prisveksten fortsetter å øke selv om økonomisk politikk prøver å holde produksjonsgapet positivt.
+
+Er adaptive forventinger en rimelig antagelse om forventinger i en situasjon med vedvarende økning i prisvekst?
+
+Adaptive forventinger kan være en rimelig antagelse i situasjoner med kortvarig økning i prisvekst. I situasjoner med langvarig økning i prisvekst vil det være mer hensiktsmessig å anta at aktørene i markedet tar hensyn til inflasjonsforventingene på lang sikt og justerer deretter.
+
+# Oppgave 3
+
+Hva slags forventninger har norske husholdninger, næringslivsledere, og økonomer om prisveksten i Norge på kort og mellomlang sikt? På oppdrag fra Norges Bank gjennomførte Ipsos en spørreundersøkelse for å finne ut av dette, tilgjengelig i kildelisten.
+
+Ifølge forventingsundersøkelsen Ipsos gjennomførte på oppdrag fra Norges Bank i 1.kvartal 2023 kan vi se at økonomer, næringslivsledere og norske husholdninger har ulike forventinger til prisveksten i Norge, både på kort og mellomlang sikt.
+
+Ifølge undersøkelsen har norske husholdninger en forventet prisvekst på 6,0% de neste 12 månedene. Dette er en økning i forventingene fra forrige undersøkelse, der husholdningene forventet en prisvekst på 4,1%. På mellomlang sikt (3-5 år) forventer husholdningene en prisvekst på 5,0%. I 2019 lå denne forventingen nede på 2,1%. Dette kan tyde på at husholdningene har lagt merke til prisveksten siden 2019 da inflasjonen i Norge lå på 2,2% (Pedersen, 2023) i forhold til året før (2018).
+
+Næringslivsledere har også en forventing om økt prisvekst de neste årene. Fra undersøkelsen kan vi se at de forventer en prisvekst på 6,7% de neste 12 månedene. Også blant næringslivsledere er dette en økning i forventingene fra forrige undersøkelse, der næringslivsledere forventet en prisvekst på 6,4%. På mellomlang sikt (3-5 år) forventer næringslivsledere en prisvekst på 5,3%. Også blandt næringslivsledere kan vi se at forventingene til prisveksten de neste 12 månedene har økt siden 2019 da disse var nede på 2,5%. Vi se det samme mønsteret som husholdningene med at forventingene på kort sikt har økt og forventingene på mellomlang sikt er noe lavere.
+
+Blandt økonomene forventer de en prisvekst på 4,3% de neste 12 månedene. Dette er en nedgang i forventingene fra forrige undersøkelse, der forventingene blant økonomer lå på 4,9%. På mellomlang sikt (3-5) år forventer økonomer en prisvekst på 2,7%. Vi kan se at økonomene har den laveste forventingen på både kort og mellomlang sikt. Dette kan tyde på at økonomene har forventinger om at økonomien blir å stabilisere seg.
+
+Vi ser at alle tre gruppene forventer økt prisvekst i Norge (over inflasjonsmålet), både på kort og mellomlang sikt. Denne forventede økning kan skyldes flere faktorer som f.eks. økt etterspørsel etter pandemien, høyere priser på råvarer og økte energipriser. Det er verdt å merke seg at Norges Bank har en inflasjonsmålsetting på 2% per år, så det er nærliggende å forvente en prisvekst rundt dette målet. For å nå dette målet vil Norges Bank justere renten hvis prisveksten overstiger dette nivået, for å bremse inflasjonen. Det er også verdt å merke at det fortsatt er stor usikkerhet til den økonomiske situasjonen i verden, spesielt på grunn av pandemiens ringvirkninger, krigen i Ukraina og Amerikansk økonomisk politikk. Dette kan påvirke den forventede prisveksten og renteøkninger i Norge.
+
+Til slutt kan vi konkludere med at økonomer, norske husholdninger og næringslivsledere har en forventning til økt prisvekst både på kort og mellomlang sikt.
+
+# Kilder
+
+-   Holden, S. (2016). *Makroøkonomi (1. utg.)*. Cappelen Damm Akademisk.
+
+-   Ipsos. (17.02.2023). *Forventningsundersøkelse for Norges Bank 1.kvartal 2023.* Norges Bank. https://www.norges-bank.no/contentassets/7905f518185c4d8d8cf91bc3c340cdde/forventningsundersokelsen-for-norges-bank-1.-kvartal-2023.pdf?v=02/16/2023185104&ft=.pdf
+
+-   Pedersen, R. (11.04.2023). *Guide til inflasjon/konsumprisindeksen.* Smartepenger. https://www.smartepenger.no/div/776-inflasjon
