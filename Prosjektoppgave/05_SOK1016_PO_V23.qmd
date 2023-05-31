@@ -1,0 +1,362 @@
+---
+title: "05_SOK1016_PO_V23"
+author: "Kandidatnummer: 05"
+format: pdf
+editor: visual
+echo: FALSE
+warning: FALSE
+---
+
+```{r}
+# Sletter minnet.
+rm(list=ls()) 
+
+# Laster inn pakker.
+suppressPackageStartupMessages({
+library(tidyverse)
+library(rjstat)
+library(httr)
+library(gridExtra)
+library(grid)})
+```
+
+```{r}
+# Lager et "custome theme".
+theme_mood <- function() {
+  theme_minimal() +
+    theme(
+      plot.background = element_rect(fill = "white", color = NA),
+      plot.margin = unit(c(5, 10, 5, 10), units = "mm"),
+      plot.title = element_text(face = "bold.italic", color = "gray10"),
+      axis.title = element_text(face = "bold", color = "gray10"),
+      axis.text = element_text(color = "gray10"),
+      legend.text = element_text(color = "gray10"),
+      legend.title = element_text(face = "bold", color = "gray10"),
+      legend.position = "bottom",
+      axis.line = element_line(color = "gray40"),
+      plot.caption = element_text(hjust = 0)
+    ) }
+```
+
+```{r}
+# Laster inn data (KPI).
+url_01 <- "https://data.ssb.no/api/v0/no/table/03013/"
+
+query_01 <- '{
+  "query": [
+    {
+      "code": "Konsumgrp",
+      "selection": {
+        "filter": "vs:CoiCop2016niva1",
+        "values": [
+          "TOTAL"
+        ]
+      }
+    },
+    {
+      "code": "ContentsCode",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "Tolvmanedersendring"
+        ]
+      }
+    },
+    {
+      "code": "Tid",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "2023M01",
+          "2023M02",
+          "2023M03",
+          "2023M04"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json-stat2"
+  }
+}'
+
+hent_indeks.tmp_01 <- url_01 %>%
+  POST(body = query_01, encode = "json")
+
+df_kpi <-  hent_indeks.tmp_01 %>%
+  content("text") %>%
+  fromJSONstat() %>%
+  as_tibble()
+```
+
+```{r}
+# Laster inn data (KPI-JAE).
+url_02 <- "https://data.ssb.no/api/v0/no/table/05327/"
+  
+query_02 <- '{
+  "query": [
+    {
+      "code": "Konsumgrp",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "JAE_TOTAL"
+        ]
+      }
+    },
+    {
+      "code": "ContentsCode",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "Tolvmanedersendring"
+        ]
+      }
+    },
+    {
+      "code": "Tid",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "2023M01",
+          "2023M02",
+          "2023M03",
+          "2023M04"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json-stat2"
+  }
+}'
+
+hent_indeks.tmp_02 <- url_02 %>%
+  POST(body = query_02, encode = "json")
+
+df_kpi_jae <-  hent_indeks.tmp_02 %>%
+  content("text") %>%
+  fromJSONstat() %>%
+  as_tibble()
+```
+
+```{r}
+# NOK mot EUR
+# Henter data på NOK mot EUR.
+kronekurs <- read.csv("EXR.csv", sep = ";")
+
+kronekurs <- kronekurs %>%
+  select(TIME_PERIOD, OBS_VALUE) %>%
+  rename(time = TIME_PERIOD, value = OBS_VALUE) 
+```
+
+```{r}
+# NOK mot EUR
+# Erstatter alle "," med "." slik at jeg kan bruke as.numeric funksjonen.
+kronekurs <- kronekurs %>%
+  mutate(value = value %>% str_replace_all(",", "."))
+```
+
+```{r}
+# NOK mot EUR
+# Gjør tid om til date format, og verdier om til numeric.
+kronekurs <- kronekurs %>%
+  mutate(time = as.Date(time),
+         value = as.numeric(value))
+
+kronekurs <- kronekurs %>%
+  filter(time > "2023-01-01")
+```
+
+```{r}
+# KPI
+# Lager en liste med måneder.
+måneder = c("Januar", "Februar", "Mars", "April")
+
+# Rydder i dataen.
+df_kpi <- df_kpi %>%
+  select(value) %>%
+  mutate(måned = måneder)
+
+# Lager ny df med anslagg fra Norges bank.
+kpi_anslag_verdi = c(7, 6.3, 6.0, 5.6)
+df_kpi_anslagg = data.frame(måneder, kpi_anslag_verdi)
+
+# Gir nye navn til kolonnene.
+df_kpi_anslagg <- df_kpi_anslagg %>%
+  rename(måned = måneder, value = kpi_anslag_verdi)
+```
+
+```{r}
+# KPI-JAE.
+# Rydder i dataen.
+df_kpi_jae <- df_kpi_jae %>%
+  select(value) %>%
+  mutate(måned = måneder)
+
+# Lager ny df med anslagg fra Norges bank.
+kpi_jae_anslag_verdi = c(6.4, 5.9, 6.2, 6.1)
+df_kpi_jae_anslag = data.frame(måneder, kpi_jae_anslag_verdi)
+
+# Gir nye navn til kolonnene.
+df_kpi_jae_anslag <- df_kpi_jae_anslag %>%
+  rename(måned = måneder, value = kpi_jae_anslag_verdi)
+```
+
+```{r}
+# KPI
+# Konverter måneder til en faktor med korrekt rekkefølge.
+df_kpi$måned <- factor(df_kpi$måned, levels = måneder)
+df_kpi_anslagg$måned <- factor(df_kpi_anslagg$måned, levels = måneder)
+```
+
+```{r}
+# KPI-JAE.
+# Konverter måneder til en faktor med korrekt rekkefølge.
+df_kpi_jae$måned <- factor(df_kpi_jae$måned, levels = måneder)
+df_kpi_jae_anslag$måned <- factor(df_kpi_jae_anslag$måned, levels = måneder)
+```
+
+```{r}
+# NOK mot EUR
+# Lager figur.
+fig_nok <- ggplot() +
+  geom_line(data = kronekurs, aes(x = time, y = value, group = 1,
+                                  color = "NOK/EUR"),
+            linewidth = 1, show.legend = TRUE) +
+  labs(x = " ", y = " ", title = "Kronekurs: NOK/EUR, 2023", 
+       caption = "Kilde: Norges Bank") +
+  scale_color_manual(name = " ",
+                     breaks = c("NOK/EUR"),
+                     values = c("NOK/EUR" = "red")) + 
+  theme_mood()
+```
+
+```{r}
+# KPI
+# Lager figur.
+fig_kpi <- ggplot() +
+  geom_line(data = df_kpi, aes(x = måned, y = value, group = 1, 
+                               color = "Faktisk KPI"),
+            linewidth = 1, show.legend = TRUE) +
+  geom_line(data = df_kpi_anslagg, aes(x = måned, y = value, group = 1, 
+                                       color = "Anslag Norges Bank"), 
+            linewidth = 1, show.legend = TRUE) +
+  labs(x = " ", y = " ", title = "KPI, 12-måneders endring 2023 (prosent)",
+       caption = "Kilder: SSB (03013) og Norges Bank (2023)") +
+  ylim(5.5, 7.5) +
+  scale_color_manual(name = " ",
+                     breaks = c("Faktisk KPI", "Anslag Norges Bank"),
+                     values = c("Faktisk KPI" = "blue", 
+                                "Anslag Norges Bank" = "gray50")) +
+  theme_mood()
+```
+
+```{r}
+# KPI-JAE.
+# Lager figur.
+fig_kpi_jae <- ggplot() +
+  geom_line(data = df_kpi_jae, aes(x = måned, y = value, group = 1,
+                                   color = "Faktisk KPI-JAE"),
+            linewidth = 1, show.legend = TRUE) +
+  geom_line(data = df_kpi_jae_anslag, aes(x = måned, y = value, group = 1,
+                                          color = "Anslag Norges Bank"),
+            linewidth = 1, show.legend = TRUE) +
+  labs(x = " ", y = " ", title = "KPI-JAE, 12-måneders endring, 2023 (prosent)",
+       caption = "Kilder: SSB (05327) og Norges bank (2023)") +
+  ylim(5.5, 7.5) +
+  scale_color_manual(name = " ",
+                     breaks = c("Faktisk KPI-JAE", "Anslag Norges Bank"),
+                     values = c("Faktisk KPI-JAE" = "blue",
+                                "Anslag Norges Bank" = "gray50")) +
+  theme_mood()
+```
+
+## Oppgave 1: Økte renter og Silicon Valley Bank
+
+Den 10. mars kollapset den amerikanske banken Silicon Valley bank (SVB). En av årsakene til kollapsen var trolig at økningen i amerikanske styringsrenten gjorde at verdien av statsobligasjonene i bankens balanseregnskap falt.
+
+### Oppgave 1a.
+
+**Forklar hva en obligasjon er, og hvilken rolle den fyller i finansmarkeder. Hvorfor faller den i verdi når renten stiger?**
+
+Obligasjoner er en måte for selskaper, stat eller kredittinstitusjon å skaffe kapital på. En obligasjon er ett lån som kan omsettes i ett marked og selges videre. Den som utsteder en obligasjon låner mengden penger som obligasjonen selges for, og forplikter seg til å betale tilbake summen med renter. Den som investerer i en obligasjon låner altså ett stort selskap, stat eller kredittinstitusjon penger, med en forventning om å få tilbake summen pluss renter. Renten på obligasjonen vil avhenge av markedsrenten på det tidspunktet. Akkurat som en aksje kan obligasjoner selges og kjøpes på børsen, og prisen kan bli høyere eller lavere enn pålydende verdi. En investor kan altså kjøpe en obligasjon med pålydende verdi 1.000 kr for 950 kr, men fortsatt få beløpet av renten til pålydende verdi tilbake.
+
+Obligasjoners rolle i finansmarkedet er at selskaper, stat eller kredittinstitusjoner enklere kan ta opp lån fra mange forskjellige kreditorer samtidig, og slik få kapital raskere og enklere enn å låne fra en bank. Obligasjoner gir også investorer muligheten til å låne ut penger og tjene avkastning gjennom rentebetaling.
+
+Obligasjoner og renter har ett omvendt forhold mellom seg. Det vil si at når renten øker vil prisen på obligasjonene synke, og når renten synker vil prisen på obligasjonene øke. Dette er fordi at når renten øker vil låntaker utstede nye obligasjoner med høyere rente for å tiltrekke seg investorer. Som følge av de nye obligasjonene med bedre rente (større avkastning) enn de gamle, må verdien på de gamle obligasjonene synke for å kunne tilby en tilsvarende avkastning. De gamle obligasjonene må altså gå ned i verdi for å kunne "konkurrere" med de nye.
+
+*Kilder: Fiksen (I.D.), Holden, S. (2016), Nordea (I.D.)*
+
+### Oppgave 1b.
+
+**Hvorfor hadde innskytere et incentiv til å trekke ut innskuddene fra SVB da styringsrenten økte?**
+
+SVB hadde stor suksess under covid-19 pandemien, når teknologiselskapene så sterk utvikling og vekst. Dette førte til at bankens kunder satte inn godt over 100 milliarder USD inn i banken. Banken satt da med mye kapital som måtte investeres og med en rekordlav rente i 2021 valgte SVB å investere denne kapitalen i langsiktige Amerikanske statsobligasjoner.
+
+I 2022 begynte den Amerikanske sentralbanken (Federal Reserve) å justere opp renten for å dempe inflasjonsnivået. Som vi så på i forrige oppgave vil en økt rente gjøre at obligasjoner blir mindre verdt, dette inkludere obligasjonene SVB holdt på.  Dette er ingen krise i seg selv visst SVB ikke trengte kapitalen på nåværende tidspunkt. Men samtidig som rentene ble justert opp begynte teknologisektoren å gå dårligere. Dette førte til at selskapene i SVB begynte å ta ut pengene sine og SVB ble tvunget til å selge deler av obligasjonene til en lavere pris enn de ble kjøpt for. Noe som førte til ett total tap på ca. 1.8 milliarder USD. Dette førte videre til at flere av bankens største kunder/investorer ble urolige og ville trekke ut sine penger. Konsekvensen av dette ble at 420 milliarder dollar ble tatt ut av banken på 48 timer, som igjen førte til et børsfall på 60 prosent.
+
+*Kilder: Holden, S. (2016), Sullivan, B., Gura, D. (2023)*
+
+## Oppgave 2: Drivekrefter for kronen
+
+**I denne oppgaven skal vi betrakte figur 2.C i pengepolitisk rapport 1/23 fra Norges Bank og vil benytte makroøkonomisk teori til å forklare hvilke mekanismer som kan skape de observerte sammenhengende og se om figurene utgjør et tilstrekkelig grunnlag for å etablere årsakssammenheng.**
+
+Figur 2.C i pengepolitikk rapporten 1/23 fra Norges Bank består av tre figurer som viser utviklingen i kronekurs indekse (I-44) mot oljepris, Amerikanske aksjekurser, og rentedifferansen mot utlandet. At kronekursindeksen er av typen I-44 betyr at den måler kronens verdi mot et veiet gjennomsnitt av valutaen til de 44 landene Norge importerer mest fra.
+
+I første figur kan vi se kronekursindeksen (I-44, høyre y-akse) og 12-måneders rentedifferanse mot utlandet (swaprentedifferanse, venstre y-akse).  Denne figuren reflekterer den makroøkonomiske mekanismen om renteparitet i internasjonal økonomi. Det betyr at forskjellen i renten mellom to land skal reflektere forventet endring i valutakurser. Det vil si at visst renten i Norge øker mer enn i utlandet vil investorer ønske å kjøpe kronen for å dra nytte av de høyere rentene. Dette vil øke etterspørselen etter kronen, og dermed også øke kronekursen, og vice versa.
+
+I den andre figuren kan vi se kronekursindeksen (I-44, høyre y-akse) og Amerikanske aksjekurser (S&P 500, venstre y-akse). Amerikanske aksjekurser kan i perioder med usikkerhet påvirke kronekursen, siden investorer velger å flytte sine investeringer fra kronen til tryggere og mer stabile valutaer som f.eks. Euro og USD. Dette vil redusere etterspørselen til kronen, slik at kronekursen blir svakere.
+
+I den siste figuren kan vi se kronekursindeksen (I-44, høyre y-akse) og oljeprisen (venstre y-akse). Oljeprisen vil kunne være med på å påvirke kronekursen siden en stor del av Norges BNP kommer fra oljen, og det er også Norges viktigste eksportvare. Det vil si at visst oljeprisen går ned vil det redusere verdien av Norges eksport, som igjen vil redusere etterspørselen for kronen, og kronekursen går ned. En nedgang i oljeprisen vil også bidra til økt usikkerhet om Norges økonomiske framtid, som kan føre til at investorer velger å plassere pengene sine i andre land. Dette kan være med på å svekke kronekursen ytterligere.
+
+For å kunne avgjøre om disse figurene utgjør et tilstrekkelig grunnlag for å etablere årsakssammenheng må vi se på det større bilde, altså hva som påvirker kronekursen. Er det slik at visst oljeprisen går ned at kronekursen også vil gå ned? Det vil sannsynligvis være en viss sammenheng mellom kronekursen og oljeprisen siden oljen utgjør en vesentlig del av Norges BNP, men det kan også være flere faktorer som spiller inn, som f.eks. politiske avgjørelser og endringer i den globale økonomien. For å kunne avgjøre om det er årsakssammenhenger mellom disse figurene kreves det flere modeller og en grundigere analyser i kombinasjon med empirisk data for å kunne dra en konklusjon. Men disse figurene kan hjelpe oss med å se trender og korrelasjoner.
+
+*Kilder: Holden, S. (2016), Norges Bank (2023)*
+
+## Oppgave 3: Utviklingen i norsk økonomi
+
+**I denne oppgaven skal vi ta utgangspunkt i pengepolitisk rapport 1/23 fra Norges Bank og se på om utviklingen i norsk økonomi tilsier at styringsrenten vil øke mer eller mindre enn anslått i rapporten. Vi vil også benytte makroøkonomisk data til å illustrere utviklingen i norsk økonomi siden 23. mars 2023.**
+
+Styringsrenten er Norges Banks viktigste virkemiddel for å stabilisere prisveksten og utviklingen i Norsk økonomi. Målet til pengepolitikken og Norges Bank er en årlig inflasjon på ca. 2 prosent. I pengepolitisk rapport 1/23 peker Norges Bank på høy inflasjon, svak krone og lønnsvekst som de viktigste faktorene for å sette opp styringsrenten.
+
+```{r}
+# Henter figuren om kpi.
+fig_kpi
+```
+
+```{r}
+# Henter figuren om kpi-jae.
+fig_kpi_jae
+```
+
+På figuren over kan vi se den faktiske utviklingen i KPI og KPI-JAE, og prognosene Norges Bank har satt ut ifra pengepolitisk rapport. KPI representerer prisnivået på samme handlekurv i forskjellige år/perioder og gir en indikasjon på inflasjonen i økonomien. KPI-JAE er nesten det samme som KPI, med unntak av avgiftsendringer og energivarer. Vi kan se at både KPI og KPI-JAE er noe høyere enn prognosene til Norges Bank etter at den pengepolitisk rapporten ble gitt ut. Dette tyder på at inflasjonen ikke har avtatt så mye som Norges Bank forventet. En av grunnene til dette kan være streiken i mellomoppgjøret mellom LO og NHO, der partene ble enig om en ramme på 5,2 prosent og et generelt lønnstillegg på 7,5 kr i timen (NHO, 2023). En slik lønnsøkning kan være med på å presse inflasjonsnivået oppover siden hver person skal ha mer penger og det må derfor mer penger i sirkulasjon. En av effektene av styringsrenten blir derfor mindre tydelige siden hensikten er at forbrukere skal bruke en større andel av inntekten sin på boliglån og mindre på konsumvarer, slik at prisene på disse konsumvarene blir presset nedover.
+
+```{r}
+# Henter figuren om NOK mot EUR.
+fig_nok
+```
+
+Vi kan se fra figuren over at den norske kronen har blitt noe svakere mot euroen siden pengepolitisk rapport ble gitt ut. Vi kan tyde dette som at den norske kronen har blitt svakere generelt sett siden euroen er en såpass stor valuta. Dette vil bidra ytterligere til å presse opp prisene på konsumvarer siden produsenter må betale mer for varer som er importert, og denne prisøkningen blant produsentene vil også svært sannsynlig forplante seg videre til konsumenter.
+
+I rapporten fra Norges Bank anslår de at styringsrente vil øke til rundt 3,5 prosent i sommeren 2023. Med bakgrunn i denne korte oppsummeringen av Norsk økonomi siden 23. mars og rapporten fra Norges Bank vil jeg se det som sannsynlig at styringsrenten vil blir justert noe opp i framtidige rapporten. Dette kan selvfølgelig ikke sies med sikkerhet og det ville kreves en større analyse for å sette noe mer konkret, men dataen så langt i år indikerer en ytterligere økning.
+
+## Kilder
+
+-   Fiken. (I.D.). *Hva er obligasjoner.* Fiken. <https://fiken.no/forklarer/obligasjoner>
+
+-   Holden, S. (2016). *Makroøkonomi (1. utg)*. Cappelen Damm Akademisk
+
+-   NHO. (2023, 20. april). *Lønnsoppgjøret 2023: Streiken er over.* NHO. [https://www.nho.no/lonn-og-tariff/lonnsoppgjoret/artikler/2023/lonnsoppgjoret-2023-enighet-i-lonnsoppgjoret--streiken-er-over/](https://www.nho.no/lonn-og-tariff/lonnsoppgjoret/artikler/2023/lonnsoppgjoret-2023-enighet-i-lonnsoppgjoret--streiken-er-over/)
+
+-   Nordea. (I.D.) *Hva er obligasjoner.* Nordea. <https://www.nordea.no/privat/vare-produkter/sparing-og-investering/fond/hva-er-obligasjoner.html>
+
+-   Norges Bank. (2023, 22. mars). *Pengepolitisk rapport 1/2023.* Norges Bank. <https://www.norges-bank.no/aktuelt/nyheter-og-hendelser/Publikasjoner/Pengepolitisk-rapport-med-vurdering-av-finansiell-stabilitet/2023/ppr-12023/nettrapport-ppr-12023/>
+
+-   Norges Bank. (I.D.). *Valutakurser.* Norges Bank. <https://www.norges-bank.no/tema/Statistikk/Valutakurser/?tab=all>
+
+-   SSB. (2023, 10. mai). *Tabell: 03013, Konsumprisindeksen, KPI.* SSB. <https://www.ssb.no/statbank/table/03013>
+
+-   SSB. (2023, 10.mai). *Tabell: 05327, Konsumprisindeksen, KPI-JAE.* SSB. <https://www.ssb.no/statbank/table/05327>
+
+-   Sullivan, B. Gura, D. (2023, 14. mars). *What to know about the Silicon Valley Bank collapse, takeover and fallout.* NPR. <https://www.npr.org/2023/03/14/1163135286/silicon-valley-bank-collapse-fallout-whats-next>'
